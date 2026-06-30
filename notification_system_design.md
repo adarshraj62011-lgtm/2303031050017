@@ -316,3 +316,85 @@ WHERE type = 'Placement'
 AND created_at >= NOW() - INTERVAL 7 DAY
 ORDER BY created_at DESC;
 ```
+
+---
+
+# Stage 4 – Performance Improvements
+
+## Problem
+
+As the number of notifications grows, the database may experience:
+
+- Slow response time
+- High server load
+- Increased query execution time
+- Higher memory and CPU usage
+
+---
+
+## Performance Improvement Techniques
+
+### 1. Pagination
+
+Retrieve notifications in small batches using LIMIT and OFFSET instead of loading all notifications at once.
+
+Example:
+
+```sql
+SELECT notification_id,
+       type,
+       message,
+       created_at
+FROM Notifications
+ORDER BY created_at DESC
+LIMIT 20 OFFSET 0;
+```
+
+---
+
+### 2. Indexing
+
+Create indexes on frequently searched columns:
+
+- student_id
+- is_read
+- created_at
+
+Composite Index:
+
+```sql
+(student_id, is_read, created_at)
+```
+
+---
+
+### 3. Caching
+
+Use Redis to cache frequently accessed notifications and reduce database load.
+
+---
+
+### 4. Archiving
+
+Move old notifications into an archive table to keep the main table small.
+
+---
+
+### 5. Read Replicas
+
+Use read replicas to distribute read requests across multiple database servers.
+
+---
+
+### 6. Lazy Loading
+
+Load notifications only when the user scrolls instead of fetching everything at once.
+
+---
+
+## Expected Benefits
+
+- Faster response time
+- Reduced database load
+- Better scalability
+- Improved user experience
