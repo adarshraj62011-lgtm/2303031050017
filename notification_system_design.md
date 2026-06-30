@@ -398,3 +398,72 @@ Load notifications only when the user scrolls instead of fetching everything at 
 - Reduced database load
 - Better scalability
 - Improved user experience
+
+
+---
+
+# Stage 5 – Reliable Notification System
+
+## Existing Approach
+
+Currently, notifications are sent directly to users. If email or push notification services fail, notifications may be lost.
+
+---
+
+## Proposed Solution
+
+Use an asynchronous message queue between the application and notification services.
+
+```
+User Action
+     |
+     v
+Application Server
+     |
+     v
+ Message Queue (RabbitMQ / Kafka)
+     |
+     +------------------+
+     |                  |
+     v                  v
+Email Service      Push Notification Service
+     |                  |
+     +------------------+
+            |
+            v
+          Student
+```
+
+---
+
+## Benefits
+
+- Reliable notification delivery
+- Better scalability
+- Faster response time
+- Easy retry mechanism
+- Reduced server load
+
+---
+
+## Retry Mechanism
+
+If notification delivery fails:
+
+- Store the failed message in the queue.
+- Retry automatically after a fixed interval.
+- Move permanently failed messages to a Dead Letter Queue (DLQ) for later analysis.
+
+---
+
+## Recommended Technologies
+
+- RabbitMQ
+- Apache Kafka
+- Redis Streams (optional)
+
+---
+
+## Conclusion
+
+Using a message queue makes the notification system reliable, fault tolerant, and scalable while ensuring notifications are not lost even during temporary failures.
