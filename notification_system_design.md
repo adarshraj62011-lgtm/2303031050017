@@ -169,7 +169,7 @@ I recommend using a **Relational Database (MySQL)** for this notification system
 |---------|-----------|------------|
 | notification_id | INT | PRIMARY KEY AUTO_INCREMENT |
 | student_id | INT | FOREIGN KEY |
-| type | VARCHAR(20) | NOT NULL |
+| type | ENUM('Placement','Result','Event') | NOT NULL |
 | message | TEXT | NOT NULL |
 | is_read | BOOLEAN | DEFAULT FALSE |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
@@ -231,4 +231,88 @@ WHERE student_id = 1042
   AND is_read = FALSE
 ORDER BY created_at DESC
 LIMIT 20;
+```
+---
+
+# Stage 3 – SQL Query Optimization
+
+## Given Query
+
+```sql
+SELECT *
+FROM Notifications
+WHERE student_id = 1042
+AND is_read = FALSE
+ORDER BY created_at ASC;
+```
+
+---
+
+## Is the Query Correct?
+
+Yes, the query correctly retrieves all unread notifications for student ID 1042 and sorts them by creation time.
+
+---
+
+## Why Can This Query Become Slow?
+
+The query may become slow when the Notifications table contains millions of records because:
+
+- SELECT * retrieves all columns, increasing data transfer.
+- No index on student_id, is_read, and created_at.
+- Sorting a large number of rows is expensive.
+- Full table scan may occur.
+
+---
+
+## Optimized Query
+
+```sql
+SELECT notification_id,
+       type,
+       message,
+       created_at
+FROM Notifications
+WHERE student_id = 1042
+  AND is_read = FALSE
+ORDER BY created_at DESC
+LIMIT 20;
+```
+
+---
+
+## Recommended Index
+
+```sql
+CREATE INDEX idx_notifications
+ON Notifications(student_id, is_read, created_at);
+```
+
+This composite index speeds up filtering and sorting.
+
+---
+
+## Should Every Column Be Indexed?
+
+No.
+
+Indexing every column is not recommended because:
+
+- It increases storage usage.
+- INSERT, UPDATE, and DELETE operations become slower.
+- Indexes should only be created on frequently searched or sorted columns.
+
+---
+
+## SQL Query for Last 7 Days Placement Notifications
+
+```sql
+SELECT notification_id,
+       type,
+       message,
+       created_at
+FROM Notifications
+WHERE type = 'Placement'
+AND created_at >= NOW() - INTERVAL 7 DAY
+ORDER BY created_at DESC;
 ```
