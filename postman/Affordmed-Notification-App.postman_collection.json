@@ -1,0 +1,495 @@
+{
+  "info": {
+    "_postman_id": "b7f02dc4-83bb-4c64-8c35-0f4c0d3c7b10",
+    "name": "Affordmed Notification App",
+    "description": "Complete Postman collection for the Affordmed Campus Evaluation Full Stack notification app. Import this collection with the Affordmed Local environment, run the backend on localhost:5000, and set authToken only when the protected evaluation API requires it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.variables.set('requestStartedAt', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is acceptable', function () {",
+          "  pm.expect(pm.response.responseTime).to.be.below(15000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "sourceApiUrl",
+      "value": "http://4.224.186.213/evaluation-service/notifications",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "limit",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "notificationType",
+      "value": "Placement",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Backend - Local API",
+      "description": "Requests served by notification-app-be.",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health check returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Backend reports success', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.message).to.include('running');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Verifies that the Express backend is running."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification backend is running\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or protected upstream returns 401', function () {",
+                  "  pm.expect([200, 401, 502]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.test('Response has notifications array', function () {",
+                  "    pm.expect(body.notifications).to.be.an('array');",
+                  "  });",
+                  "  pm.test('Response has pagination metadata', function () {",
+                  "    pm.expect(body.pagination).to.have.keys(['page', 'limit', 'total', 'totalPages']);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page={{page}}&limit={{limit}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ]
+            },
+            "description": "Returns all notifications sorted by latest timestamp. If the upstream API is protected, set authToken in the active environment."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"notifications\": [\n    {\n      \"id\": \"d146095a-0d86-4a34-9e69-3900a14576bc\",\n      \"type\": \"Result\",\n      \"message\": \"mid-sem\",\n      \"timestamp\": \"2026-04-22 17:51:30\",\n      \"priorityWeight\": 2\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Filter Notifications By Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or protected upstream returns 401', function () {",
+                  "  pm.expect([200, 401, 502]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.test('Filtered response contains expected type only', function () {",
+                  "    body.notifications.forEach((item) => pm.expect(item.type).to.eql(pm.variables.get('notificationType')));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page={{page}}&limit={{limit}}&notification_type={{notificationType}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "notification_type",
+                  "value": "{{notificationType}}",
+                  "description": "Supported values: Placement, Result, Event"
+                }
+              ]
+            },
+            "description": "Filters all notifications by notification_type."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Priority Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or protected upstream returns 401', function () {",
+                  "  pm.expect([200, 401, 502]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.test('Priority response returns max requested limit', function () {",
+                  "    pm.expect(body.notifications.length).to.be.at.most(Number(pm.variables.get('limit')));",
+                  "  });",
+                  "  pm.test('Priority weights are sorted descending', function () {",
+                  "    const weights = body.notifications.map((item) => item.priorityWeight);",
+                  "    const sorted = [...weights].sort((a, b) => b - a);",
+                  "    pm.expect(weights).to.eql(sorted);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/priority?page={{page}}&limit={{limit}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "priority"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ]
+            },
+            "description": "Returns top n priority notifications using Placement > Result > Event and then latest timestamp."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/priority?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "priority"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"notifications\": [\n    {\n      \"id\": \"b283218f-ea5a-4b7c-93a9-1f2f240d64b0\",\n      \"type\": \"Placement\",\n      \"message\": \"CSX Corporation hiring\",\n      \"timestamp\": \"2026-04-22 17:51:18\",\n      \"priorityWeight\": 3\n    },\n    {\n      \"id\": \"d146095a-0d86-4a34-9e69-3900a14576bc\",\n      \"type\": \"Result\",\n      \"message\": \"mid-sem\",\n      \"timestamp\": \"2026-04-22 17:51:30\",\n      \"priorityWeight\": 2\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Priority Notifications By Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or protected upstream returns 401', function () {",
+                  "  pm.expect([200, 401, 502]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.test('Filtered priority response contains expected type only', function () {",
+                  "    body.notifications.forEach((item) => pm.expect(item.type).to.eql(pm.variables.get('notificationType')));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/priority?page={{page}}&limit={{limit}}&notification_type={{notificationType}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "priority"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "notification_type",
+                  "value": "{{notificationType}}",
+                  "description": "Supported values: Placement, Result, Event"
+                }
+              ]
+            },
+            "description": "Returns top n priority notifications after applying notification_type filter."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "External Evaluation API",
+      "description": "Direct request to the provided protected notification API. Use this only to verify the source API separately from the local backend.",
+      "item": [
+        {
+          "name": "Provided Notification API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Protected API returns expected status', function () {",
+                  "  pm.expect([200, 401, 403]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.test('Source API has notifications array', function () {",
+                  "    pm.expect(body.notifications).to.be.an('array');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{sourceApiUrl}}?page={{page}}&limit={{limit}}&notification_type={{notificationType}}",
+              "host": [
+                "{{sourceApiUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "notification_type",
+                  "value": "{{notificationType}}"
+                }
+              ]
+            },
+            "description": "Direct GET to http://4.224.186.213/evaluation-service/notifications. It is protected, so set authToken if provided."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
