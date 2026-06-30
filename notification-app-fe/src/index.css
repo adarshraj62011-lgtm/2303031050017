@@ -1,0 +1,140 @@
+:root {
+  color: #172033;
+  background: #f6f8fb;
+}
+
+body {
+  min-width: 320px;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  min-height: 72px;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  gap: 16px;
+}
+
+.brand {
+  color: #172033;
+  flex: 1;
+  font-weight: 800;
+}
+
+.nav-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-link {
+  color: #475569;
+}
+
+.nav-link.active {
+  background: #e8f0ff;
+  color: #1d4ed8;
+}
+
+.page-container {
+  padding-top: 32px;
+  padding-bottom: 48px;
+}
+
+.page-heading h1 {
+  color: #172033;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 800;
+}
+
+.filters {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.limit-control {
+  min-width: 120px;
+}
+
+.center-state {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.notification-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.notification-card.unread {
+  border-left: 5px solid #f59e0b;
+}
+
+.notification-card.read {
+  opacity: 0.82;
+}
+
+.notification-copy {
+  min-width: 0;
+}
+
+.notification-title {
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+  font-weight: 800;
+}
+
+.read-button {
+  min-width: 120px;
+}
+
+.mark-visible-button {
+  align-self: flex-start;
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .nav-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nav-link {
+    flex: 1 1 220px;
+  }
+
+  .read-button {
+    width: 100%;
+  }
+}

@@ -1,29 +1,33 @@
-# Stage 1 – API Design
+# Notification System Design
+
+# Stage 1 - API Design
 
 ## Overview
 
-The notification system enables students to receive real-time notifications related to Placements, Results, and Events.
-
----
+The notification system lets authorised students view campus notifications for placements, results and events. The system supports unread/read state, fetching by id, deleting old notifications and real-time delivery.
 
 ## REST APIs
 
-### 1. Get All Notifications
+### Get all notifications
 
-**Method:** GET
+**Method:** `GET`
 
-**Endpoint:**
-
-```
-/notifications
-```
+**Endpoint:** `/notifications`
 
 **Headers**
 
-```
+```http
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
+
+**Query parameters**
+
+| Parameter | Description |
+| --- | --- |
+| `page` | Page number for pagination |
+| `limit` | Number of notifications per page |
+| `notification_type` | `Placement`, `Result` or `Event` |
 
 **Response**
 
@@ -33,25 +37,25 @@ Content-Type: application/json
     {
       "id": "d146095a-0d86-4a34-9e69-3900a14576bc",
       "type": "Placement",
-      "message": "Microsoft Hiring Drive",
+      "message": "Hiring drive",
       "timestamp": "2026-04-22T17:51:30Z",
       "isRead": false
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "totalPages": 10
+  }
 }
 ```
 
----
+### Mark notification as read
 
-### 2. Mark Notification as Read
+**Method:** `PATCH`
 
-**Method:** PATCH
-
-**Endpoint**
-
-```
-/notifications/{id}/read
-```
+**Endpoint:** `/notifications/{id}/read`
 
 **Response**
 
@@ -61,52 +65,28 @@ Content-Type: application/json
 }
 ```
 
----
+### Get notification by id
 
-### 3. Get Notification by ID
+**Method:** `GET`
 
-**Method:** GET
+**Endpoint:** `/notifications/{id}`
 
-**Endpoint**
+### Delete notification
 
-```
-/notifications/{id}
-```
+**Method:** `DELETE`
 
----
+**Endpoint:** `/notifications/{id}`
 
-### 4. Delete Notification
-
-**Method:** DELETE
-
-**Endpoint**
-
-```
-/notifications/{id}
-```
-
-**Response**
-
-```json
-{
-  "message": "Notification deleted successfully"
-}
-```
-
----
-
-## Response Status Codes
+## Response Codes
 
 | Status Code | Description |
-|--------------|-------------|
-| 200 | Request Successful |
-| 201 | Notification Created |
-| 400 | Bad Request |
+| --- | --- |
+| 200 | Request successful |
+| 201 | Notification created |
+| 400 | Invalid request |
 | 401 | Unauthorized |
-| 404 | Notification Not Found |
-| 500 | Internal Server Error |
-
----
+| 404 | Notification not found |
+| 500 | Internal server error |
 
 ## JSON Schema
 
@@ -115,355 +95,247 @@ Content-Type: application/json
   "id": "string",
   "type": "Placement | Result | Event",
   "message": "string",
-  "timestamp": "ISO-8601 DateTime",
+  "timestamp": "ISO-8601 datetime",
   "isRead": false
 }
 ```
 
----
+## Real-Time Mechanism
 
-## Real-Time Notification Mechanism
+Socket.IO can be used for real-time delivery. The server emits notification events to connected students and the frontend updates the notification list without refreshing.
 
-The system will use **WebSocket (Socket.IO)** to push notifications instantly to connected users. This eliminates the need for page refreshes and provides real-time updates with low latency.
-
-### Supported Notification Types
-
-- Placement
-- Result
-- Event
-
-
----
-
-# Stage 2 – Database Design
+# Stage 2 - Database Design
 
 ## Recommended Database
 
-I recommend using a **Relational Database (MySQL)** for this notification system.
+I recommend MySQL or PostgreSQL because notifications have structured fields, predictable queries and relations with students.
 
-### Why MySQL?
+## Schema
 
-- Provides ACID compliance for reliable transactions.
-- Suitable for structured notification data.
-- Supports indexing for faster queries.
-- Easy to maintain relationships between students and notifications.
-- Good performance for filtering, sorting, and pagination.
+### students
 
----
+| Column | Type | Constraint |
+| --- | --- | --- |
+| student_id | BIGINT | Primary key |
+| name | VARCHAR(100) | Not null |
+| email | VARCHAR(150) | Unique |
+| created_at | TIMESTAMP | Default current timestamp |
 
-## Database Schema
+### notifications
 
-### Table: Students
-
-| Column | Data Type | Constraints |
-|---------|-----------|------------|
-| student_id | INT | PRIMARY KEY |
-| name | VARCHAR(100) | NOT NULL |
-| email | VARCHAR(100) | UNIQUE |
-
----
-
-### Table: Notifications
-
-| Column | Data Type | Constraints |
-|---------|-----------|------------|
-| notification_id | INT | PRIMARY KEY AUTO_INCREMENT |
-| student_id | INT | FOREIGN KEY |
-| type | ENUM('Placement','Result','Event') | NOT NULL |
-| message | TEXT | NOT NULL |
-| is_read | BOOLEAN | DEFAULT FALSE |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
-
----
-
-## Relationship
-
-- One Student can have many Notifications.
-- Each Notification belongs to one Student.
-
-(Student 1 -----> Many Notifications)
-
----
+| Column | Type | Constraint |
+| --- | --- | --- |
+| notification_id | BIGINT | Primary key |
+| student_id | BIGINT | Foreign key |
+| notification_type | ENUM('Placement','Result','Event') | Not null |
+| message | TEXT | Not null |
+| is_read | BOOLEAN | Default false |
+| created_at | TIMESTAMP | Indexed |
 
 ## Indexes
 
-Create indexes on:
+```sql
+CREATE INDEX idx_notifications_student_read_created
+ON notifications (student_id, is_read, created_at DESC);
 
-- student_id
-- is_read
-- created_at
+CREATE INDEX idx_notifications_type_created
+ON notifications (notification_type, created_at DESC);
+```
 
-These indexes improve search performance.
+## Large Data Challenges
 
----
-
-## Challenges with Large Data
-
-As the number of notifications increases, the following issues may occur:
-
-- Slow query execution
-- Increased database size
-- Higher response time
-- Heavy server load
-
----
+As the system grows, queries may slow down, indexes may become expensive to maintain, and old notifications may make the table heavy.
 
 ## Solutions
 
-- Create indexes on frequently searched columns.
-- Use pagination (LIMIT and OFFSET).
-- Archive old notifications.
-- Cache frequently accessed data using Redis.
-- Optimize SQL queries.
-- Use read replicas for heavy read traffic.
+- Use pagination for every list endpoint.
+- Add composite indexes for common filters.
+- Archive old notifications after a retention period.
+- Use read replicas for high read traffic.
+- Cache frequently accessed notification pages.
 
----
-
-## Sample SQL Query
-
-```sql
-SELECT notification_id,
-       type,
-       message,
-       created_at
-FROM Notifications
-WHERE student_id = 1042
-  AND is_read = FALSE
-ORDER BY created_at DESC
-LIMIT 20;
-```
----
-
-# Stage 3 – SQL Query Optimization
+# Stage 3 - SQL Query Optimization
 
 ## Given Query
 
 ```sql
-SELECT *
-FROM Notifications
-WHERE student_id = 1042
-AND is_read = FALSE
-ORDER BY created_at ASC;
+SELECT * FROM notifications
+WHERE studentID = 1042 AND isRead = false
+ORDER BY createdAt ASC;
 ```
 
----
+## Issues
 
-## Is the Query Correct?
-
-Yes, the query correctly retrieves all unread notifications for student ID 1042 and sorts them by creation time.
-
----
-
-## Why Can This Query Become Slow?
-
-The query may become slow when the Notifications table contains millions of records because:
-
-- SELECT * retrieves all columns, increasing data transfer.
-- No index on student_id, is_read, and created_at.
-- Sorting a large number of rows is expensive.
-- Full table scan may occur.
-
----
+The query is logically close, but for an inbox the newest notifications should usually appear first. It can become slow with millions of rows because it may scan many records unless a composite index supports the filter and sort.
 
 ## Optimized Query
 
 ```sql
 SELECT notification_id,
-       type,
+       notification_type,
        message,
+       is_read,
        created_at
-FROM Notifications
+FROM notifications
 WHERE student_id = 1042
-  AND is_read = FALSE
+  AND is_read = false
 ORDER BY created_at DESC
-LIMIT 20;
+LIMIT 10 OFFSET 0;
 ```
-
----
 
 ## Recommended Index
 
 ```sql
-CREATE INDEX idx_notifications
-ON Notifications(student_id, is_read, created_at);
+CREATE INDEX idx_notifications_student_read_created
+ON notifications (student_id, is_read, created_at DESC);
 ```
-
-This composite index speeds up filtering and sorting.
-
----
 
 ## Should Every Column Be Indexed?
 
-No.
+No. Indexes speed up reads but increase storage and slow down inserts/updates. Only columns used frequently in filters, joins and sorting should be indexed.
 
-Indexing every column is not recommended because:
-
-- It increases storage usage.
-- INSERT, UPDATE, and DELETE operations become slower.
-- Indexes should only be created on frequently searched or sorted columns.
-
----
-
-## SQL Query for Last 7 Days Placement Notifications
+## Last 7 Days Placement Notifications
 
 ```sql
 SELECT notification_id,
-       type,
+       student_id,
        message,
        created_at
-FROM Notifications
-WHERE type = 'Placement'
-AND created_at >= NOW() - INTERVAL 7 DAY
+FROM notifications
+WHERE notification_type = 'Placement'
+  AND created_at >= NOW() - INTERVAL '7 days'
 ORDER BY created_at DESC;
 ```
 
----
-
-# Stage 4 – Performance Improvements
+# Stage 4 - Performance Improvements
 
 ## Problem
 
-As the number of notifications grows, the database may experience:
+Fetching all notifications on every page load overloads the database and creates poor frontend performance.
 
-- Slow response time
-- High server load
-- Increased query execution time
-- Higher memory and CPU usage
+## Recommended Improvements
 
----
+### Pagination
 
-## Performance Improvement Techniques
+Return small batches using `limit` and `page`. This reduces memory usage, network transfer and render cost.
 
-### 1. Pagination
+### Indexing
 
-Retrieve notifications in small batches using LIMIT and OFFSET instead of loading all notifications at once.
+Use composite indexes such as `(student_id, is_read, created_at DESC)` and `(notification_type, created_at DESC)` for common queries.
 
-Example:
+### Caching
 
-```sql
-SELECT notification_id,
-       type,
-       message,
-       created_at
-FROM Notifications
-ORDER BY created_at DESC
-LIMIT 20 OFFSET 0;
+Use Redis for frequently requested pages, counts and metadata. Cache entries should expire quickly so new notifications are still visible.
+
+### Archiving
+
+Move old notifications into an archive table or cold storage. This keeps the active table small.
+
+### Lazy Loading
+
+Load notifications as the user scrolls or changes pages instead of loading everything up front.
+
+## Tradeoffs
+
+Caching adds invalidation complexity, archiving adds operational work, and indexes add write overhead. The combined approach is still better because it keeps reads fast as notification volume grows.
+
+# Stage 5 - Reliable Notification System
+
+## Shortcomings
+
+If `send_email` fails midway, some students receive email and others do not. Saving to the database and sending external notifications should not be tightly coupled because external services can fail independently.
+
+## Redesigned Flow
+
+Use a message queue between the application and delivery workers.
+
+```text
+Admin action
+  -> Application validates request
+  -> Store notification request
+  -> Publish jobs to queue
+  -> Email worker retries failed email jobs
+  -> Push worker retries failed push jobs
+  -> Failed jobs move to dead-letter queue
 ```
 
----
+## Revised Pseudocode
 
-### 2. Indexing
+```text
+function notify_all(student_ids, message):
+    notification_batch = save_batch(message)
 
-Create indexes on frequently searched columns:
+    for student_id in student_ids:
+        save_in_app_notification(student_id, notification_batch.id)
+        enqueue("email", student_id, message)
+        enqueue("push", student_id, message)
 
-- student_id
-- is_read
-- created_at
+    return accepted_response(notification_batch.id)
 
-Composite Index:
-
-```sql
-(student_id, is_read, created_at)
+worker email_worker(job):
+    try:
+        send_email(job.student_id, job.message)
+        mark_job_success(job.id)
+    catch error:
+        retry_or_move_to_dlq(job)
 ```
-
----
-
-### 3. Caching
-
-Use Redis to cache frequently accessed notifications and reduce database load.
-
----
-
-### 4. Archiving
-
-Move old notifications into an archive table to keep the main table small.
-
----
-
-### 5. Read Replicas
-
-Use read replicas to distribute read requests across multiple database servers.
-
----
-
-### 6. Lazy Loading
-
-Load notifications only when the user scrolls instead of fetching everything at once.
-
----
-
-## Expected Benefits
-
-- Faster response time
-- Reduced database load
-- Better scalability
-- Improved user experience
-
-
----
-
-# Stage 5 – Reliable Notification System
-
-## Existing Approach
-
-Currently, notifications are sent directly to users. If email or push notification services fail, notifications may be lost.
-
----
-
-## Proposed Solution
-
-Use an asynchronous message queue between the application and notification services.
-
-```
-User Action
-     |
-     v
-Application Server
-     |
-     v
- Message Queue (RabbitMQ / Kafka)
-     |
-     +------------------+
-     |                  |
-     v                  v
-Email Service      Push Notification Service
-     |                  |
-     +------------------+
-            |
-            v
-          Student
-```
-
----
 
 ## Benefits
 
-- Reliable notification delivery
-- Better scalability
-- Faster response time
-- Easy retry mechanism
-- Reduced server load
+- Faster API response.
+- Retries are possible.
+- Delivery failures do not lose notifications.
+- Email and database operations can scale independently.
 
----
+# Stage 6 - Priority Notification Algorithm
 
-## Retry Mechanism
+## Requirement
 
-If notification delivery fails:
+The priority inbox must show the top `n` unread or important notifications first. Priority is determined by notification type and recency.
 
-- Store the failed message in the queue.
-- Retry automatically after a fixed interval.
-- Move permanently failed messages to a Dead Letter Queue (DLQ) for later analysis.
+## Priority Order
 
----
+```text
+Placement > Result > Event
+```
 
-## Recommended Technologies
+## Algorithm
 
-- RabbitMQ
-- Apache Kafka
-- Redis Streams (optional)
+1. Fetch notifications from the provided API.
+2. Normalize API fields into `id`, `type`, `message` and `timestamp`.
+3. Assign priority weights:
+   - Placement = 3
+   - Result = 2
+   - Event = 1
+4. Sort by priority weight descending.
+5. If two notifications have the same priority, sort by newer timestamp first.
+6. Return the top `n` notifications, defaulting to 10.
 
----
+## JavaScript Implementation
 
-## Conclusion
+```js
+const PRIORITY_WEIGHTS = {
+  Placement: 3,
+  Result: 2,
+  Event: 1
+};
 
-Using a message queue makes the notification system reliable, fault tolerant, and scalable while ensuring notifications are not lost even during temporary failures.
+function compareByPriority(first, second) {
+  const priorityDifference =
+    PRIORITY_WEIGHTS[second.type] - PRIORITY_WEIGHTS[first.type];
+
+  if (priorityDifference !== 0) {
+    return priorityDifference;
+  }
+
+  return new Date(second.timestamp).getTime() - new Date(first.timestamp).getTime();
+}
+
+function getTopPriorityNotifications(notifications, limit = 10) {
+  return [...notifications].sort(compareByPriority).slice(0, limit);
+}
+```
+
+## Maintaining Top 10 Efficiently
+
+For a continuous stream of notifications, maintain a min-heap of size 10. Insert each new notification into the heap using the same priority comparator. If the heap size becomes greater than 10, remove the lowest priority item. This keeps updates efficient without sorting all notifications every time.
