@@ -131,3 +131,104 @@ The system will use **WebSocket (Socket.IO)** to push notifications instantly to
 - Placement
 - Result
 - Event
+
+
+---
+
+# Stage 2 – Database Design
+
+## Recommended Database
+
+I recommend using a **Relational Database (MySQL)** for this notification system.
+
+### Why MySQL?
+
+- Provides ACID compliance for reliable transactions.
+- Suitable for structured notification data.
+- Supports indexing for faster queries.
+- Easy to maintain relationships between students and notifications.
+- Good performance for filtering, sorting, and pagination.
+
+---
+
+## Database Schema
+
+### Table: Students
+
+| Column | Data Type | Constraints |
+|---------|-----------|------------|
+| student_id | INT | PRIMARY KEY |
+| name | VARCHAR(100) | NOT NULL |
+| email | VARCHAR(100) | UNIQUE |
+
+---
+
+### Table: Notifications
+
+| Column | Data Type | Constraints |
+|---------|-----------|------------|
+| notification_id | INT | PRIMARY KEY AUTO_INCREMENT |
+| student_id | INT | FOREIGN KEY |
+| type | VARCHAR(20) | NOT NULL |
+| message | TEXT | NOT NULL |
+| is_read | BOOLEAN | DEFAULT FALSE |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
+
+---
+
+## Relationship
+
+- One Student can have many Notifications.
+- Each Notification belongs to one Student.
+
+(Student 1 -----> Many Notifications)
+
+---
+
+## Indexes
+
+Create indexes on:
+
+- student_id
+- is_read
+- created_at
+
+These indexes improve search performance.
+
+---
+
+## Challenges with Large Data
+
+As the number of notifications increases, the following issues may occur:
+
+- Slow query execution
+- Increased database size
+- Higher response time
+- Heavy server load
+
+---
+
+## Solutions
+
+- Create indexes on frequently searched columns.
+- Use pagination (LIMIT and OFFSET).
+- Archive old notifications.
+- Cache frequently accessed data using Redis.
+- Optimize SQL queries.
+- Use read replicas for heavy read traffic.
+
+---
+
+## Sample SQL Query
+
+```sql
+SELECT notification_id,
+       type,
+       message,
+       created_at
+FROM Notifications
+WHERE student_id = 1042
+  AND is_read = FALSE
+ORDER BY created_at DESC
+LIMIT 20;
+```
